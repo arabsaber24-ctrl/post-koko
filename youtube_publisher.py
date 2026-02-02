@@ -71,8 +71,13 @@ class YouTubePublisher:
                     flow = InstalledAppFlow.from_client_secrets_file(
                         self.credentials_file, self.scopes
                     )
-                    credentials = flow.run_local_server(port=0)
-                    logger.info("Obtained new credentials via OAuth2 flow")
+                    try:
+                        credentials = flow.run_local_server(port=0)
+                        logger.info("Obtained new credentials via OAuth2 flow")
+                    except:
+                        logger.warning("Local server failed, trying console flow")
+                        credentials = flow.run_console()
+                        logger.info("Obtained new credentials via console auth")
                 except Exception as e:
                     logger.error(f"OAuth2 flow failed: {e}")
                     return False

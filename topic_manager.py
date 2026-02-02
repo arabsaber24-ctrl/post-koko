@@ -18,7 +18,8 @@ class TopicManager:
     def __init__(self):
         self.client = OpenAI(
             api_key=os.getenv("LONGCAT_API_KEY"),
-            base_url=os.getenv("LONGCAT_BASE_URL", "https://api.longcat.chat/openai")
+            base_url=os.getenv("LONGCAT_BASE_URL", "https://api.longcat.chat/openai"),
+            timeout=60.0
         )
         self.model = "LongCat-Flash-Chat"
         

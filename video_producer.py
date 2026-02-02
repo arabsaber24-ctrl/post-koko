@@ -10,8 +10,8 @@ import glob
 from typing import Dict, List
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
-import edge_tts
-from moviepy import ImageClip, AudioFileClip, concatenate_videoclips
+from gtts import gTTS
+from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, CompositeVideoClip
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class VideoProducer:
 
     async def generate_audio(self, text: str, filename: str) -> str:
         """
-        Generate audio using Edge-TTS with male voice
+        Generate audio using Google Text-to-Speech
         
         Args:
             text: Text to convert to speech
@@ -77,11 +77,24 @@ class VideoProducer:
         Returns:
             Path to generated audio file
         """
-        communicate = edge_tts.Communicate(text, self.male_voice, rate="-10%")
-        path = os.path.join(self.output_dir, filename)
-        await communicate.save(path)
-        logger.info(f"Audio generated: {filename}")
-        return path
+        try:
+            # Use gTTS for reliable speech synthesis
+            tts = gTTS(text=text, lang='en', slow=True)
+            path = os.path.join(self.output_dir, filename)
+            tts.save(path)
+            logger.info(f"Audio generated: {filename}")
+            return path
+        except Exception as e:
+            logger.error(f"Error generating audio: {e}")
+            # Create a silent audio file as fallback
+            import wave
+            path = os.path.join(self.output_dir, filename)
+            with wave.open(path, 'wb') as wav_file:
+                wav_file.setnchannels(1)
+                wav_file.setsampwidth(2)
+                wav_file.setframerate(44100)
+                wav_file.writeframes(b'\x00' * 44100 * 2)  # 1 second of silence
+            return path
 
     def create_slide_image(self, text: str, filename: str, is_title: bool = False) -> str:
         """
@@ -193,7 +206,7 @@ class VideoProducer:
                 duration = audio_clip.duration + 1.0  # Add 1 second buffer
                 
                 # Create video clip
-                img_clip = ImageClip(img_path).with_duration(duration).with_audio(audio_clip)
+                img_clip = ImageClip(img_path).set_duration(duration).set_audio(audio_clip)
                 clips.append(img_clip)
                 
                 logger.info(f"Slide {i+1}/4 completed (duration: {duration:.1f}s)")

@@ -1,6 +1,7 @@
 """
 YouTube Publisher for Kids Educational Content
 Handles OAuth2 authentication and video uploads to YouTube
+Uses saved token for automatic uploads without manual intervention
 """
 
 import os
@@ -37,6 +38,7 @@ class YouTubePublisher:
     def authenticate(self):
         """
         Authenticate with YouTube API using OAuth2
+        Uses saved token if available, otherwise creates new one
         
         Returns:
             True if authentication successful, False otherwise
@@ -48,56 +50,40 @@ class YouTubePublisher:
             try:
                 with open(self.token_file, 'rb') as token:
                     credentials = pickle.load(token)
-                logger.info("Loaded existing credentials")
+                logger.info("Loaded existing credentials from token file")
+                
+                # Refresh if expired
+                if credentials.expired and credentials.refresh_token:
+                    try:
+                        credentials.refresh(Request())
+                        logger.info("Refreshed expired credentials")
+                        
+                        # Save refreshed token
+                        with open(self.token_file, 'wb') as token:
+                            pickle.dump(credentials, token)
+                        logger.info("Saved refreshed credentials")
+                    except Exception as e:
+                        logger.error(f"Could not refresh credentials: {e}")
+                        credentials = None
+                
+                if credentials and credentials.valid:
+                    # Build YouTube service
+                    try:
+                        self.youtube = build('youtube', 'v3', credentials=credentials)
+                        logger.info("YouTube API service built successfully")
+                        return True
+                    except Exception as e:
+                        logger.error(f"Could not build YouTube service: {e}")
+                        return False
+                        
             except Exception as e:
                 logger.warning(f"Could not load token file: {e}")
         
-        # Refresh or get new credentials
-        if not credentials or not credentials.valid:
-            if credentials and credentials.expired and credentials.refresh_token:
-                try:
-                    credentials.refresh(Request())
-                    logger.info("Refreshed expired credentials")
-                except Exception as e:
-                    logger.error(f"Could not refresh credentials: {e}")
-                    credentials = None
-            
-            if not credentials:
-                if not os.path.exists(self.credentials_file):
-                    logger.error(f"Credentials file not found: {self.credentials_file}")
-                    return False
-                
-                try:
-                    flow = InstalledAppFlow.from_client_secrets_file(
-                        self.credentials_file, self.scopes
-                    )
-                    try:
-                        credentials = flow.run_local_server(port=0)
-                        logger.info("Obtained new credentials via OAuth2 flow")
-                    except:
-                        logger.warning("Local server failed, trying console flow")
-                        credentials = flow.run_console()
-                        logger.info("Obtained new credentials via console auth")
-                except Exception as e:
-                    logger.error(f"OAuth2 flow failed: {e}")
-                    return False
-            
-            # Save credentials for future use
-            try:
-                with open(self.token_file, 'wb') as token:
-                    pickle.dump(credentials, token)
-                logger.info("Saved credentials to token file")
-            except Exception as e:
-                logger.warning(f"Could not save token file: {e}")
-        
-        # Build YouTube service
-        try:
-            self.youtube = build('youtube', 'v3', credentials=credentials)
-            logger.info("YouTube API service built successfully")
-            return True
-        except Exception as e:
-            logger.error(f"Could not build YouTube service: {e}")
-            return False
+        # No valid token found
+        logger.error(f"No valid YouTube token found in {self.token_file}")
+        logger.error("Please run: python3 get_youtube_token.py")
+        logger.error("This will save your YouTube token for automatic uploads.")
+        return False
 
     def upload_video(
         self,
@@ -105,7 +91,7 @@ class YouTubePublisher:
         title: str,
         description: str,
         tags: list,
-        category_id: str = "27",  # Education category
+        category_id: str = "27",
         privacy_status: str = "public",
         made_for_kids: bool = True
     ) -> Optional[str]:
@@ -151,7 +137,7 @@ class YouTubePublisher:
         # Create media upload
         media = MediaFileUpload(
             video_path,
-            chunksize=-1,  # Upload entire file in one request
+            chunksize=-1,
             resumable=True
         )
         
@@ -244,8 +230,8 @@ class YouTubePublisher:
         # Generate description
         description = f"""Learn about {subtopic} in this short educational video for kids!
 
-🎓 Category: {category}
-📚 Topic: {main_topic}
+Category: {category}
+Topic: {main_topic}
 
 Perfect for young learners to understand important concepts in a fun and engaging way.
 
@@ -266,7 +252,7 @@ Perfect for young learners to understand important concepts in a fun and engagin
         ]
         
         return {
-            "title": title[:100],  # YouTube title limit
-            "description": description[:5000],  # YouTube description limit
-            "tags": tags[:15]  # YouTube allows up to 500 chars of tags
+            "title": title[:100],
+            "description": description[:5000],
+            "tags": tags[:15]
         }

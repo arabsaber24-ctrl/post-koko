@@ -2,7 +2,13 @@
 
 An automated Python application that generates halal, kid-friendly educational content, creates high-quality vertical videos (9:16), and posts them to YouTube Shorts twice daily.
 
-## ✨ Features
+## ✨ New Features (v2.0)
+- **Natural Male Voice**: High-quality male narration using gTTS and ffmpeg pitch shifting.
+- **AI Content Improvement**: Automatic content "kid-ification" to ensure maximum engagement and safety.
+- **Kid-Friendly Design**: Simplified slides with minimal text, perfect for toddlers.
+- **Safe Content**: Guaranteed no animals or humans in content.
+
+## ✨ Original Features
 
 ### Content Generation
 - **AI-Powered Topics**: Generates 200 unique, kid-friendly topics per batch using Longcat AI
@@ -44,7 +50,7 @@ An automated Python application that generates halal, kid-friendly educational c
 
 ### System Requirements
 - Python 3.8 or higher
-- FFmpeg (for video processing)
+- **FFmpeg** (Crucial for audio pitch shifting and video processing)
 - Internet connection
 
 ### API Requirements

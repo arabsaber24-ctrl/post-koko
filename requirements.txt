@@ -3,20 +3,18 @@ python-dotenv==1.0.0
 schedule==1.2.0
 
 # AI and API
-openai==1.12.0
+openai>=1.0.0
+gTTS==2.5.4
 
 # Video production
 Pillow==10.2.0
 moviepy==1.0.3
-edge-tts==6.1.9
 
 # YouTube API
 google-auth-oauthlib==1.2.0
 google-auth-httplib2==0.2.0
 google-api-python-client==2.116.0
 
-# Database
-# sqlite3 is included in Python standard library
-
 # Utilities
 requests==2.31.0
+httpx>=0.25.0

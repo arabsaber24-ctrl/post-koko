@@ -1,6 +1,6 @@
 """
 Video Producer for Kids Educational Content
-Creates vertical 9:16 videos with slides and male voice narration
+Creates vertical 9:16 videos with beautiful slides and male voice narration
 """
 
 import os
@@ -10,7 +10,7 @@ import glob
 from typing import Dict, List
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
-from gtts import gTTS
+import pyttsx3
 from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, CompositeVideoClip
 
 logger = logging.getLogger(__name__)
@@ -22,14 +22,24 @@ class VideoProducer:
         self.width = 1080
         self.height = 1920
         
-        # Color scheme
-        self.bg_color = (30, 30, 30)  # Dark background
+        # Modern color scheme - vibrant and kid-friendly
+        self.bg_colors = [
+            (25, 45, 85),      # Deep blue
+            (45, 85, 65),      # Forest green
+            (95, 35, 65),      # Purple
+            (85, 55, 25),      # Brown
+        ]
+        self.accent_colors = [
+            (255, 200, 0),     # Golden yellow
+            (0, 255, 150),     # Bright cyan
+            (255, 100, 150),   # Pink
+            (255, 150, 0),     # Orange
+        ]
         self.text_color = (255, 255, 255)  # White text
-        self.accent_color = (255, 204, 0)  # Yellow for titles
         
         # Margins and spacing
-        self.margin = 120  # Safe margin
-        self.line_spacing = 50
+        self.margin = 80
+        self.line_spacing = 60
         
         # Create output directory
         os.makedirs(output_dir, exist_ok=True)
@@ -37,14 +47,32 @@ class VideoProducer:
         # Find available font
         self.font_path = self._find_font()
         
-        # Male voice for narration
-        self.male_voice = os.getenv("MALE_VOICE", "en-US-GuyNeural")
+        # Initialize pyttsx3 for male voice
+        self.engine = pyttsx3.init()
+        self.engine.setProperty('rate', 150)  # Slower for kids
+        self._setup_male_voice()
         
-        logger.info(f"VideoProducer initialized with voice: {self.male_voice}")
+        logger.info("VideoProducer initialized with pyttsx3 male voice")
+
+    def _setup_male_voice(self):
+        """Setup male voice for pyttsx3"""
+        try:
+            voices = self.engine.getProperty('voices')
+            # Find male voice
+            for voice in voices:
+                if 'male' in voice.name.lower() or 'david' in voice.name.lower():
+                    self.engine.setProperty('voice', voice.id)
+                    logger.info(f"Using voice: {voice.name}")
+                    return
+            # If no male voice found, use first available
+            if voices:
+                self.engine.setProperty('voice', voices[0].id)
+                logger.info(f"Using default voice: {voices[0].name}")
+        except Exception as e:
+            logger.warning(f"Could not set voice: {e}")
 
     def _find_font(self) -> str:
         """Find an available TrueType font"""
-        # Try common font paths
         font_paths = [
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
             "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
@@ -57,7 +85,6 @@ class VideoProducer:
                 logger.info(f"Using font: {path}")
                 return path
         
-        # Fallback: find any TTF font
         fonts = glob.glob("/usr/share/fonts/**/*.ttf", recursive=True)
         if fonts:
             logger.info(f"Using fallback font: {fonts[0]}")
@@ -66,9 +93,9 @@ class VideoProducer:
         logger.warning("No TrueType font found, using default")
         return None
 
-    async def generate_audio(self, text: str, filename: str) -> str:
+    def generate_audio(self, text: str, filename: str) -> str:
         """
-        Generate audio using Google Text-to-Speech
+        Generate audio using pyttsx3 with male voice
         
         Args:
             text: Text to convert to speech
@@ -78,10 +105,9 @@ class VideoProducer:
             Path to generated audio file
         """
         try:
-            # Use gTTS for reliable speech synthesis
-            tts = gTTS(text=text, lang='en', slow=True)
             path = os.path.join(self.output_dir, filename)
-            tts.save(path)
+            self.engine.save_to_file(text, path)
+            self.engine.runAndWait()
             logger.info(f"Audio generated: {filename}")
             return path
         except Exception as e:
@@ -93,49 +119,66 @@ class VideoProducer:
                 wav_file.setnchannels(1)
                 wav_file.setsampwidth(2)
                 wav_file.setframerate(44100)
-                wav_file.writeframes(b'\x00' * 44100 * 2)  # 1 second of silence
+                wav_file.writeframes(b'\x00' * 44100 * 2)
             return path
 
-    def create_slide_image(self, text: str, filename: str, is_title: bool = False) -> str:
+    def create_slide_image(self, text: str, filename: str, is_title: bool = False, slide_index: int = 0) -> str:
         """
-        Create a slide image with text
+        Create a beautiful slide image with enhanced design
         
         Args:
             text: Text to display on slide
             filename: Output filename
-            is_title: Whether this is a title slide (larger font)
+            is_title: Whether this is a title slide
+            slide_index: Index of the slide for color variation
             
         Returns:
             Path to generated image
         """
-        # Create image
-        img = Image.new('RGB', (self.width, self.height), color=self.bg_color)
+        # Select colors based on slide index
+        bg_color = self.bg_colors[slide_index % len(self.bg_colors)]
+        accent_color = self.accent_colors[slide_index % len(self.accent_colors)]
+        
+        # Create image with gradient-like effect
+        img = Image.new('RGB', (self.width, self.height), color=bg_color)
         draw = ImageDraw.Draw(img)
         
-        # Font sizes
-        title_size = 110
-        body_size = 75
-        font_size = title_size if is_title else body_size
+        # Add decorative elements for title slides
+        if is_title:
+            # Draw decorative circles/shapes
+            circle_size = 200
+            draw.ellipse(
+                [(self.width - circle_size - 50, -50), 
+                 (self.width + 50, circle_size - 50)],
+                fill=accent_color,
+                outline=accent_color
+            )
+            draw.ellipse(
+                [(50 - circle_size, self.height - circle_size + 50), 
+                 (50, self.height + 50)],
+                fill=accent_color,
+                outline=accent_color
+            )
         
         # Load font
         try:
-            font = ImageFont.truetype(self.font_path, font_size)
+            if is_title:
+                font = ImageFont.truetype(self.font_path, 120)
+            else:
+                font = ImageFont.truetype(self.font_path, 80)
         except:
             font = ImageFont.load_default()
             logger.warning("Using default font")
         
-        # Calculate max width for text
-        max_width = self.width - (2 * self.margin)
-        
         # Wrap text
+        max_width = self.width - (2 * self.margin)
         lines = []
         for line in text.split('\n'):
             if line.strip():
-                # Wrap each line
-                wrapped = textwrap.wrap(line, width=20 if is_title else 25)
+                wrapped = textwrap.wrap(line, width=15 if is_title else 20)
                 lines.extend(wrapped)
             else:
-                lines.append("")  # Preserve empty lines
+                lines.append("")
         
         # Calculate total height
         total_height = 0
@@ -145,7 +188,7 @@ class VideoProducer:
                 bbox = draw.textbbox((0, 0), line, font=font)
                 h = bbox[3] - bbox[1]
             else:
-                h = font_size // 2  # Empty line spacing
+                h = 60
             line_heights.append(h)
             total_height += h
         
@@ -154,23 +197,42 @@ class VideoProducer:
         # Start Y position (centered vertically)
         current_y = (self.height - total_height) // 2
         
-        # Draw each line
-        color = self.accent_color if is_title else self.text_color
+        # Draw each line with shadow effect
         for line, h in zip(lines, line_heights):
             if line:
                 bbox = draw.textbbox((0, 0), line, font=font)
                 w = bbox[2] - bbox[0]
-                x = (self.width - w) // 2  # Center horizontally
+                x = (self.width - w) // 2
+                
+                # Draw shadow
+                shadow_offset = 3
+                draw.text(
+                    (x + shadow_offset, current_y + shadow_offset),
+                    line,
+                    font=font,
+                    fill=(0, 0, 0, 100)
+                )
+                
+                # Draw main text
+                color = accent_color if is_title else self.text_color
                 draw.text((x, current_y), line, font=font, fill=color)
+            
             current_y += h + self.line_spacing
         
+        # Add bottom decorative bar
+        bar_height = 10
+        draw.rectangle(
+            [(0, self.height - bar_height), (self.width, self.height)],
+            fill=accent_color
+        )
+        
         # Save image
-        path = os.path.join(self.output_dir, filename)
-        img.save(path)
+        img_path = os.path.join(self.output_dir, filename)
+        img.save(img_path)
         logger.info(f"Slide image created: {filename}")
-        return path
+        return img_path
 
-    def create_video(self, lesson_data: Dict, topic_data: Dict, output_filename: str = "final_video.mp4") -> str:
+    def create_video(self, lesson_data: Dict, topic_data: Dict, output_filename: str) -> str:
         """
         Create complete video from lesson data
         
@@ -194,12 +256,11 @@ class VideoProducer:
                 
                 # Create slide image
                 img_filename = f"slide_{i}.png"
-                img_path = self.create_slide_image(text, img_filename, is_title=is_title)
+                img_path = self.create_slide_image(text, img_filename, is_title=is_title, slide_index=i)
                 
                 # Generate audio for this slide
                 audio_filename = f"audio_{i}.mp3"
-                loop = asyncio.get_event_loop()
-                audio_path = loop.run_until_complete(self.generate_audio(text, audio_filename))
+                audio_path = self.generate_audio(text, audio_filename)
                 
                 # Load audio to get duration
                 audio_clip = AudioFileClip(audio_path)
@@ -222,7 +283,7 @@ class VideoProducer:
                 codec="libx264",
                 audio_codec="aac",
                 preset="medium",
-                logger=None  # Suppress moviepy verbose output
+                logger=None
             )
             
             # Close clips to free resources
@@ -237,7 +298,7 @@ class VideoProducer:
             logger.error(f"Failed to create video: {e}")
             raise
 
-    def cleanup_temp_files(self, keep_final_video: bool = True):
+    def cleanup(self, keep_final_video: bool = True):
         """
         Clean up temporary files
         
@@ -273,7 +334,7 @@ class VideoProducer:
             Duration in seconds
         """
         try:
-            from moviepy import VideoFileClip
+            from moviepy.editor import VideoFileClip
             clip = VideoFileClip(video_path)
             duration = clip.duration
             clip.close()

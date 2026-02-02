@@ -122,7 +122,7 @@ class KidsEduAutomation:
             # Step 3: Generate lesson content
             logger.info("Generating lesson content...")
             try:
-                lesson_data = self.content_generator.generate_lesson_with_retry(topic_data)
+                lesson_data = self.content_generator.generate_lesson(topic_data)
                 logger.info("Lesson content generated successfully")
             except Exception as e:
                 logger.error(f"Failed to generate lesson: {e}")

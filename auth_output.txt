@@ -1,0 +1,21 @@
+Please visit the URL printed below to authorize the application.
+Please visit this URL to authorize this application: https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=70234660563-gitevkislhkk5uprfpm5fht6septm3hv.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2F&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.upload&state=a1RWgoP0nBHq2FYoqQXJ9WzRY0LMR9&access_type=offline
+Traceback (most recent call last):
+  File "/home/ubuntu/kids-edu-shorts/auth_headless.py", line 31, in <module>
+    main()
+  File "/home/ubuntu/kids-edu-shorts/auth_headless.py", line 24, in main
+    credentials = flow.run_local_server(port=8080, open_browser=False)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/google_auth_oauthlib/flow.py", line 458, in run_local_server
+    self.fetch_token(
+  File "/usr/local/lib/python3.11/dist-packages/google_auth_oauthlib/flow.py", line 285, in fetch_token
+    return self.oauth2session.fetch_token(self.client_config["token_uri"], **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/requests_oauthlib/oauth2_session.py", line 271, in fetch_token
+    self._client.parse_request_uri_response(
+  File "/usr/local/lib/python3.11/dist-packages/oauthlib/oauth2/rfc6749/clients/web_application.py", line 220, in parse_request_uri_response
+    response = parse_authorization_code_response(uri, state=state)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/dist-packages/oauthlib/oauth2/rfc6749/parameters.py", line 277, in parse_authorization_code_response
+    raise MismatchingStateError()
+oauthlib.oauth2.rfc6749.errors.MismatchingStateError: (mismatching_state) CSRF Warning! State not equal in request and response.
